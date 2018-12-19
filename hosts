@@ -1,0 +1,2 @@
+152.1.13.91 ansible_connection=ssh ansible_ssh_user=adbagchi ansible_ssh_pass=<password>
+152.46.20.81 ansible_connection=ssh ansible_ssh_user=vvenka11 ansible_ssh_pass=<password>

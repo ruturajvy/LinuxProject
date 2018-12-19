@@ -1,0 +1,17 @@
+hubnetwork:
+ publicip:152.46.20.81
+ privatenet:40.2.1.0/24
+ router:httpd
+ backuprouter:backup-r
+
+connection1:
+ publicip: 152.1.13.91
+ tunneldst: 152.1.13.91
+ privatenet: 40.1.1.0/24
+ vpnconnname: gre_tunnel
+ vpnpass: vpntunnel
+ tunnelhubip: 1.1.1.2
+ tunnelspokeip: 1.1.1.1
+
+connections:
+ - connection1

@@ -1,0 +1,13 @@
+Enter the name of private network to be created:privatenet 
+Enter the name of public network to be created:gre_test 
+Enter the subnet of private network:40.1.1.0/24 
+Enter the subnet of public network:10.1.1.0/24 
+Enter the name of container(gateway to private network):Cont-router 
+Enter the names of containers to be created in private network(names with space gap between):C1 
+Enter the public reachable ip of the hub:152.46.20.81 
+Enter the name of the tunnel to be created:gre_tunnel 
+Enter the subnet to be given to tunnel:1.1.1.0/24 
+Enter the networks reachable through tunnel(hub network to be entered first):40.2.1.0/24 
+Enter the public reachable Ip of the remote host:152.1.13.91 
+Enter the password for vpn tunnel:"vpntunnel" 
+Enter the connection number:1

@@ -1,0 +1,166 @@
+- hosts: localhost
+  gather_facts: no
+
+  tasks:
+   - name: Running script to Generate input variables file.
+     script: "get_input.py"
+   
+   - name: Including varibles.
+     include_vars: vars_file.yaml
+     
+   - name: Writing the connection details
+     lineinfile:
+      dest: tenant1_connections.yaml
+      line: " - {{connection.name}}"
+      insertafter: '^\connections\:'
+      state: present
+      
+   - name: Writing the connection details to file
+     blockinfile:
+       dest: tenant1_connections.yaml
+       marker: ""
+       block: |
+            {{connection.name}}:
+             publicip: {{connection.publicip}}
+             tunneldst: {{connection.tunneldst}}
+             privatenet: {{connection.privatenet}}
+             vpnconnname: {{connection.vpnconnname}}
+             vpnpass: {{connection.vpnpass}}
+             tunnelhubip: {{connection.tunnelhubip}}
+             tunnelspokeip: {{connection.tunnelspokeip}}
+
+- hosts: 152.1.13.91
+  gather_facts: no
+  become: yes
+  become_method: sudo
+
+  tasks:
+   - name: Copying necessary files and scripts to remote host
+     synchronize:
+       src: "{{ item.src }}" 
+       dest: "{{ item.dest }}"
+     with_items:
+       - { src: 'vars_file.yaml', dest: '~/vars_file.yaml' }
+       - { src: 'net_conn.py', dest: '~/net_conn.py' }
+       - { src: 'tunnel_conn_vpc.py', dest: '~/tunnel_conn_vpc.py' }
+       - { src: 'inputfile.txt', dest: '~/inputfile.txt' }
+
+   - name: Including varibles.
+     include_vars: vars_file.yaml
+
+   - name: Creating '{{privatenet.name}}.xml'
+     command: sudo touch /etc/libvirt/qemu/networks/{{privatenet.name}}.xml
+     become: yes
+
+   - name: writing to '{{privatenet.name}}' private network xml file
+     blockinfile:
+      dest: /etc/libvirt/qemu/networks/{{privatenet.name}}.xml
+      marker: <!-- -->
+      block: |
+           <network>
+            <name>{{privatenet.name}}</name>
+            <forward mode='bridge'>
+            </forward>
+            <bridge name='{{privatenet.name}}'/>
+           </network>
+     
+   - name: Creating and starting {{privatenet.name}}
+     command: "{{item}}"
+     with_items:
+     - sudo brctl addbr {{privatenet.name}}
+     - sudo virsh net-define /etc/libvirt/qemu/networks/{{privatenet.name}}.xml
+     - sudo virsh net-start {{privatenet.name}}
+     - sudo ip link set {{privatenet.name}} up
+
+   - name: Creating '{{publicnet.name}}.xml'
+     command: sudo touch /etc/libvirt/qemu/networks/{{publicnet.name}}.xml
+
+   - name: writing to '{{publicnet.name}}' public network xml file
+     blockinfile:
+      dest: /etc/libvirt/qemu/networks/{{publicnet.name}}.xml
+      marker: <!-- -->
+      block: |
+           <network>
+            <name>{{publicnet.name}}</name>
+            <forward mode='nat'>
+            </forward>
+            <bridge name='{{publicnet.name}}'/>
+            <ip address='{{publicnet.ip}}' netmask='255.255.255.0'>
+            </ip>
+           </network>
+
+   - name: Creating and starting {{publicnet.name}}
+     command: "{{item}}"
+     with_items:
+     - sudo virsh net-define /etc/libvirt/qemu/networks/{{publicnet.name}}.xml
+     - sudo virsh net-start {{publicnet.name}}
+     - sudo ip link set {{publicnet.name}} up
+
+   - name: Creating gateway router for private network
+     docker_container:
+      image: httpd
+      name: "{{public_container_names.name}}"
+      state: started
+      privileged: yes
+      interactive: yes
+      tty: yes
+
+   - name: Creating servers in private network
+     docker_container:
+      image: centos
+      name: "{{item}}"
+      state: started
+      privileged: yes
+      interactive: yes
+      tty: yes
+     with_items:
+     - "{{priv_container_names}}"
+
+   - name: Establishing network connections
+     script: "net_conn.py"
+
+   - name: Establishing Ipsec tunnel
+     script: "tunnel_conn_vpc.py"
+
+- hosts: 152.46.20.81
+  gather_facts: no
+  become: yes
+  become_method: sudo
+
+  tasks:
+   - name: Copying necessary files and scripts to remote host
+     synchronize:
+       src: "{{ item.src }}"
+       dest: "{{ item.dest }}"
+     with_items:
+       - { src: 'vars_file.yaml', dest: '~/vars_file.yaml' }
+       - { src: 'tunnel_config_hub.py', dest: '~/tunnel_config_hub.py' }
+       - { src: 'inputfile.txt', dest: '~/inputfile.txt' }
+
+   - name: Including varibles.
+     include_vars: vars_file.yaml
+
+   - name: Establishing Ipsec tunnel
+     script: "tunnel_config_hub.py"
+     
+   - name: Writing the connection details
+     lineinfile:
+      dest: tenant1_connections.yaml
+      line: " - {{connection.name}}"
+      insertafter: '^\connections\:'
+      state: present
+      
+   - name: Writing the connection details to file
+     blockinfile:
+       dest: tenant1_connections.yaml
+       marker: ""
+       block: |
+            {{connection.name}}:
+             publicip: {{connection.publicip}}
+             tunneldst: {{connection.tunneldst}}
+             privatenet: {{connection.privatenet}}
+             vpnconnname: {{connection.vpnconnname}}
+             vpnpass: {{connection.vpnpass}}
+             tunnelhubip: {{connection.tunnelhubip}}
+             tunnelspokeip: {{connection.tunnelspokeip}}
+

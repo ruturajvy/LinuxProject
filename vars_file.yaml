@@ -1,0 +1,20 @@
+privatenet:
+ name: privatenet 
+ subnet: 40.1.1.0/24 
+publicnet:
+ name: gre_test 
+ subnet: 10.1.1.0/24 
+ ip: 10.1.1.1
+public_container_names:
+ name: Cont-router 
+priv_container_names:
+ - C1
+connection:
+ name: connection1
+ publicip: 152.1.13.91 
+ tunneldst: 152.1.13.91 
+ privatenet: 40.1.1.0/24 
+ vpnconnname: gre_tunnel 
+ vpnpass: "vpntunnel" 
+ tunnelhubip: 1.1.1.2
+ tunnelspokeip: 1.1.1.1
